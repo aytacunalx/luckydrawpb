@@ -11,10 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessageElement = errorArea.querySelector('p');
     const loadingFileMessage = document.getElementById('loadingFile');
     const drawingStatusMessage = document.getElementById('drawingStatus');
-    const downloadTxtBtn = document.getElementById('downloadTxtBtn'); // Yeni: İndirme düğmesine erişim
+    const downloadTxtBtn = document.getElementById('downloadTxtBtn');
 
     let participants = []; // Excel'den okunan tüm katılımcıların ana listesi (değişmez)
-    let finalWinners = []; // Çekiliş sonunda belirlenen kazananların son listesi
+    let finalWinners = []; // Çekiliş sonunda belirlenen kazananların son listesi (TXT için)
 
     // Hata mesajını gösterir
     function showError(message) {
@@ -89,8 +89,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await readFileAsArrayBuffer(file);
             const workbook = XLSX.read(data, { type: 'array' });
 
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
+            // **Hata Düzeltmesi ve Kontrol:**
+            // workbook.Sheets[sheetName] doğru referans, XLSX.Sheets[sheetName] yanlış olabilir.
+            let worksheet;
+            if (workbook.SheetNames && workbook.SheetNames.length > 0) {
+                const sheetName = workbook.SheetNames[0]; // İlk sayfanın adını al
+                worksheet = workbook.Sheets[sheetName];    // O sayfaya eriş
+            } else {
+                throw new Error('Excel dosyası herhangi bir çalışma sayfası içermiyor.');
+            }
+            
+            if (!worksheet) {
+                throw new Error('Excel dosyasının ilk çalışma sayfası boş veya okunamadı.');
+            }
 
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
@@ -100,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            for (let i = 1; i < jsonData.length; i++) {
+            for (let i = 1; i < jsonData.length; i++) { // Başlık satırını atla (i=1'den başla)
                 const row = jsonData[i];
                 const uid = row[0]; 
                 const participationCount = parseInt(row[1]);
@@ -133,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (err) {
-            showError(`Excel dosyasını okurken bir hata oluştu: ${err.message}. Dosya formatını kontrol edin.`);
+            showError(`Excel dosyasını okurken bir hata oluştu: ${err.message}. Lütfen dosya formatını, boş olup olmadığını ve sayfa adlarını kontrol edin.`);
             console.error("Excel okuma hatası:", err);
             winnerCountInput.style.display = 'none';
             winnerCountLabel.style.display = 'none';
@@ -228,9 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 finalWinners.forEach((winner, index) => {
                     const winnerItem = document.createElement('div');
                     winnerItem.classList.add('winner-item');
+                    // UID kısmını HTML'de bırakıyoruz ama CSS ile gizleyeceğiz
                     winnerItem.innerHTML = `
-                        <span>UID: ${winner.uid}</span>
-                        <span class="nickname">Takma Adı: ${winner.nickname}</span>
+                        <span>UID: ${winner.uid}</span> 
+                        <span class="nickname">${winner.nickname}</span>
                     `;
                     winnerItem.style.animationDelay = `${0.2 + index * 0.15}s`;
                     winnersListContainer.appendChild(winnerItem);
@@ -256,18 +268,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Sadece UID'leri al ve her birini yeni bir satıra yaz
-        const uidsToSave = finalWinners.map(winner => winner.uid).join('\n');
+        // UID ve Takma Adı birleştirerek her birini yeni bir satıra yaz
+        const contentToSave = finalWinners.map(winner => `UID: ${winner.uid}, Takma Adı: ${winner.nickname}`).join('\n');
         
         // Blob oluştur (text/plain türünde)
-        const blob = new Blob([uidsToSave], { type: 'text/plain;charset=utf-8' });
+        const blob = new Blob([contentToSave], { type: 'text/plain;charset=utf-8' });
         
         // Bir indirme linki oluştur
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         
         // Dosya adı
-        a.download = 'cekilis_kazanan_uidleri.txt';
+        a.download = 'cekilis_kazananlari.txt'; // Dosya adını değiştirdik
         
         // Linki tıkla (indirme işlemini başlat)
         document.body.appendChild(a); // Bazı tarayıcılar için DOM'a eklemek gerekebilir
