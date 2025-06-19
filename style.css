@@ -5,7 +5,7 @@
     --accent-orange: #FFAB62; /* Vurgu Turuncusu */
     --dark-orange: #CC7000;   /* Çok Koyu Turuncu */
     --background-gray: #f0f0f0; /* Açık Gri Arka Plan - Arka plan görseli yoksa bu görünür */
-    --text-color: #333;
+    --text-color: #ffffff;
     --light-text-color: #ffffff;
     --border-color: #FFB870;
 }
@@ -196,7 +196,7 @@ button:disabled {
     padding: 15px;
     border: 1px solid var(--border-color);
     display: flex;
-    justify-content: space-between;
+    justify-content: center; /* Sadece takma ad kalacağı için ortala */
     align-items: center;
     font-size: 1.1em;
     font-weight: 600;
@@ -211,6 +211,12 @@ button:disabled {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* UID'yi gizlemek için yeni kural */
+.winner-item span:first-child { /* Winner item içindeki ilk span (UID) */
+    display: none;
+}
+
 
 .winner-item .nickname {
     color: var(--primary-orange);
